@@ -35,7 +35,10 @@ Stack: React 18 + Vite + TypeScript + Tailwind CSS v3; PDF via jsPDF.
   optionally shuffles (best-effort: avoids two identical operations in a row).
   This is the core logic and is covered by `arithmetic.test.ts`.
 - `src/pdf/buildPdf.ts` — `buildWorksheet()` / `buildAnswers()` lay problems out in
-  two columns on A4 and trigger downloads (`variora-primery.pdf` / `variora-otvety.pdf`).
+  two columns on A4 and trigger downloads. Each takes a `token` (see `src/pdf/token.ts`,
+  a `YYYYMMDD-HHMMSS` stamp) used both in the filename (`variora-primery-<token>.pdf` /
+  `variora-otvety-<token>.pdf`) and printed in the header (`Код: <token>`) so a pair is
+  unique across downloads and a worksheet can be matched to its answer key.
 - `src/pdf/fonts/dejavu.ts` + `DejaVuSans.ttf` — **Cyrillic support.** jsPDF's
   built-in fonts have no Cyrillic glyphs, so the TTF is imported via Vite `?url`,
   fetched at runtime, base64-encoded, and registered with `addFileToVFS` / `addFont`.
@@ -44,11 +47,17 @@ Stack: React 18 + Vite + TypeScript + Tailwind CSS v3; PDF via jsPDF.
   titles) go through `t()` so other languages can be added later without touching
   components.
 - `src/components/` — `ParamsForm`, `NumberField`, `OperationToggle`. Form state is
-  lifted into `App.tsx`, which caches the generated problem set (keyed by a params
-  signature) so the worksheet and answer key downloaded for the same params match.
+  lifted into `App.tsx`, which caches `{ sig, problems, token }` keyed by a params
+  signature. A new `token` is minted only when a fresh set is generated (changed params
+  or the "↻ Новые примеры" button), so the worksheet and answer key for one set share a
+  token; the two single-file buttons reuse it.
 
 ## Deployment
 
-`.github/workflows/deploy.yml` builds and publishes `dist/` to GitHub Pages on push
-to `main`. `vite.config.ts` sets `base: '/variora/'` for the Pages subpath — change
-this if the repo/site path changes.
+Live at **https://gr0ker.github.io/variora/**. GitHub Pages is already enabled with the
+"GitHub Actions" source (`build_type=workflow`), so `.github/workflows/deploy.yml` builds
+and publishes `dist/` automatically on every push to `main` — no manual step needed.
+`vite.config.ts` sets `base: '/variora/'` for the Pages subpath; change it if the
+repo/site path changes. The `origin` remote uses HTTPS (works with the `gh` credential
+helper). Workflow actions still target Node 20 and log a deprecation warning — harmless,
+bump to Node 24 actions when convenient.
